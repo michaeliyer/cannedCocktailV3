@@ -1,0 +1,25 @@
+body {
+    font-family: sans-serif;
+    padding: 2rem;
+    background-color: #f4f4f4;
+  }
+  
+  button {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+  }
+
+  .edit-form input {
+    margin: 0.25rem;
+    padding: 0.25rem;
+  }
+  .edit-form button {
+    margin-left: 0.25rem;
+  }
+
+
+  #customerList .notes {
+    font-style: italic;
+    color: #444;
+    margin-left: 1rem;
+  }

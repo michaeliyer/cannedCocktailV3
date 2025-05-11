@@ -1,0 +1,12 @@
+# Node modules
+node_modules/
+
+# SQLite DB files
+*.db
+*.sqlite
+
+# Env files
+.env
+
+# Logs
+*.log
