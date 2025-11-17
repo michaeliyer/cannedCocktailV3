@@ -56,3 +56,13 @@ CREATE TABLE order_items (
   FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id)
 );
 
+CREATE TABLE payments (
+  payment_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_id INTEGER NOT NULL,
+  amount_paid REAL NOT NULL,
+  payment_date TEXT NOT NULL,
+  payment_method TEXT NOT NULL,
+  note TEXT,
+  FOREIGN KEY (order_id) REFERENCES orders(order_id)
+);
+

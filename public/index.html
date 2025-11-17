@@ -1,68 +1,190 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Canned Cocktail V3</title>
-  <link href="style.css" rel="stylesheet" type="text/css" />
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Canned Cocktail V3</title>
+    <link href="style.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
     <body>
+      <h1>Canned Cocktail Inventory V3</h1>
 
-        <h1>Canned Cocktail Inventory V3</h1>
+      <h2>Add Customer</h2>
+      <form id="customerForm">
+        <input type="text" name="name" placeholder="Customer Name" required />
+        <input type="email" name="email" placeholder="Email" />
+        <input type="tel" name="phone" placeholder="Phone" />
+        <textarea name="notes" placeholder="Notes"></textarea>
+        <button type="submit">Add Customer</button>
+      </form>
+      <h2>All Customers</h2>
+      <ul id="customerList"></ul>
+      <hr />
+      <hr />
 
-        <h2>Add Customer</h2>
-        <form id="customerForm">
-          <input type="text" name="name" placeholder="Customer Name" required />
-          <input type="email" name="email" placeholder="Email" />
-          <input type="tel" name="phone" placeholder="Phone" />
-          <textarea name="notes" placeholder="Notes"></textarea>
-          <button type="submit">Add Customer</button>
-        </form>        
-        <h2>All Customers</h2>
-        <ul id="customerList"></ul>
-    <hr>     
-    <hr>  
-        
-        
-        <h2>Add a Product</h2>
-        <form id="productForm">
-            <input type="text" id="name" placeholder="Name" required />
-            <input type="text" id="description" placeholder="Description" />
-            <input type="text" id="category" placeholder="Category" />
-            <button type="submit">Add Product</button>
-        </form>
-        <h2>All Products</h2>
-        <ul id="productList"></ul>
-    <hr>     
-    <hr>   
+      <h2>Add a Product</h2>
+      <form id="productForm">
+        <input type="text" id="name" placeholder="Name" required />
+        <input type="text" id="description" placeholder="Description" />
+        <input type="text" id="category" placeholder="Category" />
+        <button type="submit">Add Product</button>
+      </form>
+      <h2>All Products</h2>
+      <ul id="productList"></ul>
+      <hr />
+      <hr />
 
-    <h2>Add a Product Variant</h2>
-            <form id="variantForm">
-            <select id="variantProductSelect" required></select>
-            <input type="text" id="variantSize" placeholder="Size (e.g. 4 x 1gallon)" required />
-            <input type="number" id="variantPrice" placeholder="Price (e.g. 100.00)" step="0.01" required />
-            <input type="number" id="variantStock" placeholder="Units in stock" required />
-            <button type="submit">Add Variant</button>
-            </form>
-        <h2>All Products & Variants</h2>
-        <div id="productWithVariants"></div>
-       
-        
-    <h2>Create Order</h2>
-            <form id="orderForm">
-            <label for="orderCustomer">Customer:</label>
-            <select id="orderCustomer" required></select>
+      <h2>Add a Product Variant</h2>
+      <form id="variantForm">
+        <select id="variantProductSelect" required></select>
+        <input
+          type="text"
+          id="variantSize"
+          placeholder="Size (e.g. 4 x 1gallon)"
+          required
+        />
+        <input
+          type="number"
+          id="variantPrice"
+          placeholder="Price (e.g. 100.00)"
+          step="0.01"
+          required
+        />
+        <input
+          type="number"
+          id="variantStock"
+          placeholder="Units in stock"
+          required
+        />
+        <button type="submit">Add Variant</button>
+      </form>
+      <h2>All Products & Variants</h2>
+      <div id="productWithVariants"></div>
 
-            <div id="orderItemsContainer"></div>
-            <button type="button" onclick="addOrderItem()">➕ Add Item</button>
+      <hr />
+      <hr />
 
-            <p><strong>Total: $<span id="orderTotal">0.00</span></strong></p>
+      <h2>Create Order</h2>
+      <form id="orderForm">
+        <label for="orderCustomer">Customer:</label>
+        <select id="orderCustomer" required></select>
 
-            <button type="submit">✅ Submit Order</button>
-            </form>
-      
-        <script src="script.js"></script>
-      </body>
-</body>
+        <div id="orderItemsContainer"></div>
+        <button type="button" onclick="addOrderItem()">➕ Add Item</button>
+
+        <p>
+          <strong>Total: $<span id="orderTotal">0.00</span></strong>
+        </p>
+
+        <button type="submit">✅ Submit Order</button>
+      </form>
+
+      <hr />
+      <hr />
+
+      <button onclick="loadAllOrders()">View All Orders</button>
+      <div id="ordersSection">
+        <h2>Orders:</h2>
+        <table id="ordersTable">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Date</th>
+              <th>Customer</th>
+              <th>Product</th>
+              <th>Size</th>
+              <th>Quantity</th>
+              <th>Unit Price</th>
+              <th>Subtotal</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <hr />
+      <hr />
+
+      <h2>Add Payment</h2>
+      <form id="paymentForm">
+        <label for="paymentOrder">Order:</label>
+        <select id="paymentOrder" required>
+          <option value="">Select Order</option>
+        </select>
+        <div id="orderBalanceInfo" style="margin: 0.5rem 0; color: #666"></div>
+        <label for="paymentAmount">Amount:</label>
+        <input
+          type="number"
+          id="paymentAmount"
+          placeholder="0.00"
+          step="0.01"
+          min="0.01"
+          required
+        />
+        <label for="paymentMethod">Payment Method:</label>
+        <select id="paymentMethod" required>
+          <option value="">Select Method</option>
+          <option value="cash">Cash</option>
+          <option value="credit">Credit Card</option>
+          <option value="check">Check</option>
+          <option value="other">Other</option>
+        </select>
+        <label for="paymentNote">Note (optional):</label>
+        <textarea id="paymentNote" placeholder="Payment note"></textarea>
+        <button type="submit">Add Payment</button>
+      </form>
+      <div id="paymentStatus" style="margin-top: 1rem"></div>
+
+      <hr />
+      <hr />
+
+      <h2>Payment History</h2>
+      <label for="viewPaymentsOrder">View payments for order:</label>
+      <select id="viewPaymentsOrder">
+        <option value="">Select Order</option>
+      </select>
+      <button onclick="viewPaymentHistory()">View History</button>
+      <div id="paymentHistory" style="margin-top: 1rem"></div>
+
+      <hr />
+      <hr />
+
+      <h2>Updated Orders with Balances</h2>
+      <button onclick="toggleOrdersWithBalances()">
+        <span id="ordersToggleText">Show</span> Orders with Payment Balances
+      </button>
+      <div id="ordersWithBalances" style="display: none; margin-top: 1rem">
+        <button onclick="loadOrdersWithBalances()" style="margin-bottom: 1rem">
+          Refresh
+        </button>
+        <table
+          id="ordersBalancesTable"
+          style="width: 100%; border-collapse: collapse"
+        >
+          <thead>
+            <tr>
+              <th style="border: 1px solid #ddd; padding: 0.5rem">Order ID</th>
+              <th style="border: 1px solid #ddd; padding: 0.5rem">Date</th>
+              <th style="border: 1px solid #ddd; padding: 0.5rem">Customer</th>
+              <th style="border: 1px solid #ddd; padding: 0.5rem">
+                Order Total
+              </th>
+              <th style="border: 1px solid #ddd; padding: 0.5rem">
+                Total Paid
+              </th>
+              <th style="border: 1px solid #ddd; padding: 0.5rem">
+                Balance Due
+              </th>
+              <th style="border: 1px solid #ddd; padding: 0.5rem">Status</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <script src="script.js"></script>
+    </body>
+  </body>
 </html>
