@@ -1,3 +1,19 @@
+// Toggle section visibility
+function toggleSection(sectionId) {
+  const section = document.getElementById(sectionId);
+  // Find the button that triggered this (it's in the same container)
+  const container = section.closest(".section-container");
+  const button = container.querySelector(".toggle-btn");
+
+  if (section.style.display === "none" || section.style.display === "") {
+    section.style.display = "block";
+    if (button) button.classList.add("expanded");
+  } else {
+    section.style.display = "none";
+    if (button) button.classList.remove("expanded");
+  }
+}
+
 function testAPI() {
   fetch("/api/hello")
     .then((res) => res.json())
@@ -475,7 +491,8 @@ function addOrderItem() {
     .then((res) => res.json())
     .then((data) => {
       const container = document.getElementById("orderItemsContainer");
-      const index = orderItems.length;
+      // Use current number of items in DOM as index (more reliable)
+      const index = container.children.length;
 
       const itemDiv = document.createElement("div");
       itemDiv.classList.add("order-item");
@@ -509,12 +526,45 @@ function addOrderItem() {
       variantSelect.addEventListener("change", updateOrderTotal);
       quantityInput.addEventListener("input", updateOrderTotal);
 
+      // Create remove button
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.textContent = "❌ Remove";
+      removeButton.classList.add("remove-item-btn");
+      removeButton.onclick = () => removeOrderItem(itemDiv, index);
+
       itemDiv.appendChild(variantSelect);
       itemDiv.appendChild(quantityInput);
+      itemDiv.appendChild(removeButton);
       container.appendChild(itemDiv);
 
       orderItems.push({ variant_id: null, quantity: 0 }); // placeholder for this line
     });
+}
+
+function removeOrderItem(itemDiv, index) {
+  // Remove from DOM
+  itemDiv.remove();
+
+  // Remove from orderItems array if index is valid
+  if (index >= 0 && index < orderItems.length) {
+    orderItems.splice(index, 1);
+  }
+
+  // Re-index remaining items
+  const container = document.getElementById("orderItemsContainer");
+  const remainingItems = container.querySelectorAll(".order-item");
+  remainingItems.forEach((item, idx) => {
+    item.dataset.index = idx;
+    // Update the remove button's onclick to use the new index
+    const removeBtn = item.querySelector(".remove-item-btn");
+    if (removeBtn) {
+      removeBtn.onclick = () => removeOrderItem(item, idx);
+    }
+  });
+
+  // Update total after removal
+  updateOrderTotal();
 }
 
 function updateOrderTotal() {
@@ -581,6 +631,7 @@ document.getElementById("orderForm").addEventListener("submit", (e) => {
       document.getElementById("orderForm").reset();
       document.getElementById("orderItemsContainer").innerHTML = "";
       document.getElementById("orderTotal").textContent = "0.00";
+      orderItems = []; // Clear the orderItems array
     })
     .catch((err) => console.error("Error submitting order:", err));
 });
@@ -918,6 +969,245 @@ function loadOrdersWithBalances() {
     });
 }
 
+// === SALES REPORTS FUNCTIONS ===
+
+function populateReportDropdowns() {
+  // Populate customer dropdown
+  fetch("/customers")
+    .then((res) => res.json())
+    .then((customers) => {
+      const select = document.getElementById("reportCustomer");
+      customers.forEach((customer) => {
+        const option = document.createElement("option");
+        option.value = customer.customer_id;
+        option.textContent = customer.name;
+        select.appendChild(option);
+      });
+    })
+    .catch((err) => console.error("Error loading customers:", err));
+
+  // Populate product dropdown
+  fetch("/api/products-list")
+    .then((res) => res.json())
+    .then((products) => {
+      const select = document.getElementById("reportProduct");
+      products.forEach((product) => {
+        const option = document.createElement("option");
+        option.value = product.product_id;
+        option.textContent = product.name;
+        select.appendChild(option);
+      });
+    })
+    .catch((err) => console.error("Error loading products:", err));
+
+  // Populate variant dropdown
+  fetch("/api/variants-list")
+    .then((res) => res.json())
+    .then((variants) => {
+      const select = document.getElementById("reportVariant");
+      variants.forEach((variant) => {
+        const option = document.createElement("option");
+        option.value = variant.variant_id;
+        option.textContent = `${variant.product_name} - ${
+          variant.size
+        } ($${variant.unit_price.toFixed(2)})`;
+        select.appendChild(option);
+      });
+    })
+    .catch((err) => console.error("Error loading variants:", err));
+}
+
+function clearReportFilters() {
+  document.getElementById("reportCustomer").value = "";
+  document.getElementById("reportStatus").value = "all";
+  document.getElementById("reportExactDate").value = "";
+  document.getElementById("reportStartDate").value = "";
+  document.getElementById("reportEndDate").value = "";
+  document.getElementById("reportProduct").value = "";
+  document.getElementById("reportVariant").value = "";
+  document.getElementById("salesReportResults").style.display = "none";
+}
+
+document.getElementById("salesReportForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const params = new URLSearchParams();
+
+  const customerId = document.getElementById("reportCustomer").value;
+  if (customerId) params.append("customer_id", customerId);
+
+  const status = document.getElementById("reportStatus").value;
+  if (status) params.append("status", status);
+
+  const exactDate = document.getElementById("reportExactDate").value;
+  if (exactDate) params.append("exact_date", exactDate);
+
+  const startDate = document.getElementById("reportStartDate").value;
+  if (startDate) params.append("start_date", startDate);
+
+  const endDate = document.getElementById("reportEndDate").value;
+  if (endDate) params.append("end_date", endDate);
+
+  const productId = document.getElementById("reportProduct").value;
+  if (productId) params.append("product_id", productId);
+
+  const variantId = document.getElementById("reportVariant").value;
+  if (variantId) params.append("variant_id", variantId);
+
+  // Validate date filters
+  if (exactDate && (startDate || endDate)) {
+    alert("Please use either Exact Date OR Date Range, not both.");
+    return;
+  }
+
+  if (startDate && endDate && startDate > endDate) {
+    alert("Start date must be before end date.");
+    return;
+  }
+
+  fetch(`/api/reports/sales?${params.toString()}`)
+    .then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.details || data.error || `HTTP ${res.status}`);
+      }
+      return data;
+    })
+    .then((data) => {
+      if (data.error) {
+        const errorMsg = data.details || data.error || "Unknown error";
+        alert("Error: " + errorMsg);
+        console.error("Report error:", data);
+        return;
+      }
+
+      displaySalesReport(data);
+    })
+    .catch((err) => {
+      console.error("Error generating report:", err);
+      alert("Error generating report: " + err.message);
+    });
+});
+
+function displaySalesReport(data) {
+  const resultsDiv = document.getElementById("salesReportResults");
+  resultsDiv.style.display = "block";
+
+  // Display summary with safe defaults
+  const summary = data.summary || {
+    total_orders: 0,
+    total_revenue: 0,
+    total_paid: 0,
+    total_outstanding: 0,
+    open_orders: 0,
+    closed_orders: 0,
+  };
+
+  const summaryContent = document.getElementById("summaryContent");
+  summaryContent.innerHTML = `
+    <div style="background: rgba(255,255,255,0.2); padding: 1rem; border-radius: 8px">
+      <div style="font-size: 0.9rem; opacity: 0.9">Total Orders</div>
+      <div style="font-size: 2rem; font-weight: bold">${
+        summary.total_orders || 0
+      }</div>
+    </div>
+    <div style="background: rgba(255,255,255,0.2); padding: 1rem; border-radius: 8px">
+      <div style="font-size: 0.9rem; opacity: 0.9">Total Revenue</div>
+      <div style="font-size: 2rem; font-weight: bold">$${(
+        summary.total_revenue || 0
+      ).toFixed(2)}</div>
+    </div>
+    <div style="background: rgba(255,255,255,0.2); padding: 1rem; border-radius: 8px">
+      <div style="font-size: 0.9rem; opacity: 0.9">Total Paid</div>
+      <div style="font-size: 2rem; font-weight: bold">$${(
+        summary.total_paid || 0
+      ).toFixed(2)}</div>
+    </div>
+    <div style="background: rgba(255,255,255,0.2); padding: 1rem; border-radius: 8px">
+      <div style="font-size: 0.9rem; opacity: 0.9">Outstanding</div>
+      <div style="font-size: 2rem; font-weight: bold">$${(
+        summary.total_outstanding || 0
+      ).toFixed(2)}</div>
+    </div>
+    <div style="background: rgba(255,255,255,0.2); padding: 1rem; border-radius: 8px">
+      <div style="font-size: 0.9rem; opacity: 0.9">Open Orders</div>
+      <div style="font-size: 2rem; font-weight: bold">${
+        summary.open_orders || 0
+      }</div>
+    </div>
+    <div style="background: rgba(255,255,255,0.2); padding: 1rem; border-radius: 8px">
+      <div style="font-size: 0.9rem; opacity: 0.9">Closed Orders</div>
+      <div style="font-size: 2rem; font-weight: bold">${
+        summary.closed_orders || 0
+      }</div>
+    </div>
+  `;
+
+  // Display orders table
+  const ordersTableDiv = document.getElementById("reportOrdersTable");
+  if (data.orders.length === 0) {
+    ordersTableDiv.innerHTML = `
+      <p style="text-align: center; padding: 2rem; color: #666">No orders found matching your criteria.</p>
+    `;
+    return;
+  }
+
+  let tableHTML = `
+    <table style="width: 100%; border-collapse: collapse">
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>Date</th>
+          <th>Customer</th>
+          <th>Items</th>
+          <th>Total</th>
+          <th>Paid</th>
+          <th>Balance</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  data.orders.forEach((order) => {
+    const isOpen = order.order_status === "open";
+    const rowColor = isOpen ? "#ffebee" : "#e8f5e9";
+
+    const itemsList = order.items
+      .map(
+        (item) =>
+          `${item.product_name} - ${item.variant_size} (x${item.quantity})`
+      )
+      .join(", ");
+
+    tableHTML += `
+      <tr style="background-color: ${rowColor}">
+        <td>${order.order_id}</td>
+        <td>${new Date(order.date).toLocaleDateString()}</td>
+        <td>
+          <strong>${order.customer_name}</strong><br>
+          <small style="color: #666">${order.customer_email || ""} ${
+      order.customer_phone || ""
+    }</small>
+        </td>
+        <td><small>${itemsList || "No items"}</small></td>
+        <td>$${order.total_price.toFixed(2)}</td>
+        <td>$${order.total_paid.toFixed(2)}</td>
+        <td style="font-weight: ${
+          order.balance_due > 0 ? "bold" : "normal"
+        }">$${order.balance_due.toFixed(2)}</td>
+        <td>${isOpen ? "⚠️ Open" : "✅ Closed"}</td>
+      </tr>
+    `;
+  });
+
+  tableHTML += `</tbody></table>`;
+  ordersTableDiv.innerHTML = tableHTML;
+
+  // Scroll to results
+  resultsDiv.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 window.onload = () => {
   loadProducts();
   loadCustomers();
@@ -925,4 +1215,5 @@ window.onload = () => {
   populateProductDropdown();
   populateOrderCustomerDropdown();
   populatePaymentDropdowns();
+  populateReportDropdowns();
 };
